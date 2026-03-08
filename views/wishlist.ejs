@@ -1,54 +1,187 @@
 <%- include('layout', { content: `
 <div class="container">
   <div class="page-header">
-    <h1 class="page-title">My Wishlist</h1>
+    <h1 class="page-title">Wishlists</h1>
   </div>
   
-  <div class="add-wishlist-form">
-    <h3 class="card-title mb-2">Add New Item</h3>
-    <form method="POST" action="/add_wishlist_item">
-      <div class="grid grid-2">
-        <div class="form-group" style="margin-bottom: 0;">
-          <label class="form-label" for="url">Product URL (optional)</label>
-          <input type="url" id="url" name="url" class="form-input" placeholder="https://...">
-        </div>
-        <div class="form-group" style="margin-bottom: 0;">
-          <label class="form-label" for="custom_title">Title</label>
-          <input type="text" id="custom_title" name="custom_title" class="form-input" placeholder="Item name (or leave blank to auto-fetch)">
-        </div>
-      </div>
-      <button type="submit" class="btn btn-primary mt-2">
-        <i class="fas fa-plus"></i> Add to Wishlist
-      </button>
-    </form>
-  </div>
-  
-  ${items.length > 0 ? `
-  <div class="wishlist-grid">
-    ${items.map(item => `
-    <div class="wishlist-item">
-      <h3 class="wishlist-item-title">${item.title}</h3>
-      ${item.url ? `
-      <div class="wishlist-item-url">
-        <a href="${item.url}" target="_blank" rel="noopener">
-          <i class="fas fa-external-link-alt"></i> View Product
+  <div class="wishlist-layout">
+    <!-- Users Sidebar -->
+    <div class="users-sidebar">
+      <h3 class="sidebar-title">Users</h3>
+      <div class="users-list">
+        ${users.map(u => `
+        <a href="/wishlist?user=${u.id}" class="user-item ${viewUser.id === u.id ? 'active' : ''}">
+          <div class="user-avatar-sm">
+            ${u.portrait ? `<img src="/${u.portrait}" alt="${u.username}">` : u.username[0].toUpperCase()}
+          </div>
+          <span>${u.username}${u.id === currentUserId ? ' (You)' : ''}</span>
         </a>
-      </div>
-      ` : ''}
-      <div class="wishlist-item-actions">
-        <a href="/delete_wishlist_item/${item.id}" class="btn btn-danger btn-sm" onclick="return confirm('Remove this item from your wishlist?')">
-          <i class="fas fa-trash"></i> Remove
-        </a>
+        `).join('')}
       </div>
     </div>
-    `).join('')}
+    
+    <!-- Wishlist Content -->
+    <div class="wishlist-content">
+      <div class="wishlist-header">
+        <h2>${isOwn ? 'My Wishlist' : viewUser.username + "'s Wishlist"}</h2>
+        ${isOwn ? `
+        <button class="btn btn-primary" onclick="openModal('addItemModal')">
+          <i class="fas fa-plus"></i> Add Item
+        </button>
+        ` : ''}
+      </div>
+      
+      ${items.length > 0 ? `
+      <div class="wishlist-grid">
+        ${items.map(item => `
+        <div class="wishlist-item">
+          <h3 class="wishlist-item-title">${item.title}</h3>
+          ${item.url ? `
+          <div class="wishlist-item-url">
+            <a href="${item.url}" target="_blank" rel="noopener">
+              <i class="fas fa-external-link-alt"></i> View Product
+            </a>
+          </div>
+          ` : ''}
+          ${isOwn ? `
+          <div class="wishlist-item-actions">
+            <a href="/delete_wishlist_item/${item.id}" class="btn btn-danger btn-sm" onclick="return confirm('Remove this item?')">
+              <i class="fas fa-trash"></i> Remove
+            </a>
+          </div>
+          ` : ''}
+        </div>
+        `).join('')}
+      </div>
+      ` : `
+      <div class="empty-state">
+        <i class="fas fa-gift"></i>
+        <h3>${isOwn ? 'Your wishlist is empty' : 'No items yet'}</h3>
+        <p>${isOwn ? 'Add things you want!' : 'This user hasn\'t added any items yet.'}</p>
+      </div>
+      `}
+    </div>
   </div>
-  ` : `
-  <div class="empty-state">
-    <i class="fas fa-gift"></i>
-    <h3>Your wishlist is empty</h3>
-    <p>Add items you'd love to get!</p>
-  </div>
-  `}
 </div>
+
+${isOwn ? `
+<div class="modal-overlay" id="addItemModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Add Wishlist Item</h2>
+      <button class="modal-close" onclick="closeModal('addItemModal')">&times;</button>
+    </div>
+    <form method="POST" action="/add_wishlist_item">
+      <div class="form-group">
+        <label class="form-label" for="url">Product URL (optional)</label>
+        <input type="url" id="url" name="url" class="form-input" placeholder="https://..." onchange="previewUrl()">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="custom_title">Title</label>
+        <input type="text" id="custom_title" name="custom_title" class="form-input" placeholder="Item name (leave blank to auto-fetch from URL)">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('addItemModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Add Item
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+` : ''}
+
+<style>
+.wishlist-layout {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 768px) {
+  .wishlist-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.users-sidebar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 1rem;
+  height: fit-content;
+}
+
+.sidebar-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-secondary);
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 10px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.user-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.user-item.active {
+  background: rgba(255, 107, 53, 0.1);
+  color: var(--accent);
+}
+
+.user-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.8rem;
+  overflow: hidden;
+}
+
+.user-avatar-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wishlist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.wishlist-header h2 {
+  font-size: 1.5rem;
+}
+</style>
 `, page: 'wishlist' }) %>
+
+<script>
+function previewUrl() {
+  const url = document.getElementById('url').value;
+  if (url && !document.getElementById('custom_title').value) {
+    document.getElementById('custom_title').placeholder = 'Fetching title...';
+  }
+}
+</script>

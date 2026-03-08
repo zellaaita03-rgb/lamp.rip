@@ -13,8 +13,8 @@
         </h3>
         
         <div class="profile-header">
-          <div class="profile-avatar">
-            ${user.portrait ? `<img src="/${user.portrait}" alt="${user.username}">` : user.username[0].toUpperCase()}
+          <div class="profile-avatar" id="avatarContainer">
+            ${user.portrait ? `<img src="/${user.portrait}" alt="${user.username}" id="avatarImg">` : user.username[0].toUpperCase()}
           </div>
           <div class="profile-info">
             <h2>${user.username}</h2>
@@ -24,16 +24,34 @@
         
         <div class="mt-2">
           <label class="form-label">Change Portrait</label>
-          <label class="btn btn-secondary">
+          <input type="file" id="portraitInput" accept="image/*" style="display: none;" onchange="uploadPortrait(this)">
+          <button class="btn btn-secondary" onclick="document.getElementById('portraitInput').click()">
             <i class="fas fa-upload"></i> Upload Photo
-            <input type="file" accept="image/*" style="display: none;" onchange="uploadPortrait(this)">
-          </label>
+          </button>
           <p class="text-muted text-sm mt-1">JPG, PNG, GIF, WebP. Max 5MB.</p>
         </div>
       </div>
     </div>
     
     <div class="card">
+      <div class="profile-section">
+        <h3 class="profile-section-title">
+          <i class="fas fa-birthday-cake"></i> Birthday
+        </h3>
+        <form method="POST" action="/profile">
+          <div class="form-group">
+            <label class="form-label" for="birthday">Your Birthday</label>
+            <input type="date" id="birthday" name="birthday" class="form-input" value="${user.birthday || ''}">
+            <p class="text-muted text-sm mt-1">This will create recurring birthday events on the calendar!</p>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Save Birthday
+          </button>
+        </form>
+      </div>
+    </div>
+    
+    <div class="card" style="grid-column: 1 / -1;">
       <div class="profile-section">
         <h3 class="profile-section-title">
           <i class="fas fa-lock"></i> Change Password
@@ -91,16 +109,22 @@ async function uploadPortrait(input) {
         
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         
-        const response = await fetch('/profile/portrait', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ image: dataUrl })
-        });
-        
-        if (response.ok) {
-          location.reload();
-        } else {
-          alert('Failed to upload image');
+        try {
+          const response = await fetch('/profile/portrait', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: dataUrl })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            document.getElementById('avatarContainer').innerHTML = 
+              '<img src="' + result.path + '" alt="${user.username}" id="avatarImg">';
+          } else {
+            alert('Failed to upload: ' + (result.error || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Upload failed: ' + err.message);
         }
       };
       img.src = e.target.result;

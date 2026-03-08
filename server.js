@@ -13,13 +13,14 @@ const PORT = 5000;
 const db = new Database('lamp.db');
 db.pragma('journal_mode = WAL');
 
-// Initialize tables
+// Initialize tables - added birthday field
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     portrait TEXT DEFAULT NULL,
+    birthday TEXT DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   
@@ -31,6 +32,7 @@ db.exec(`
     end_datetime DATETIME,
     created_by INTEGER NOT NULL,
     tagged_users TEXT,
+    is_birthday INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (created_by) REFERENCES users(id)
   );
@@ -65,8 +67,8 @@ if (!adminExists) {
 }
 
 // Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'static')));
 app.use(session({
@@ -118,6 +120,48 @@ async function fetchUrlTitle(url) {
     });
   } catch {
     return null;
+  }
+}
+
+// Helper to create birthday event
+function createBirthdayEvent(userId, username, birthday) {
+  const [month, day] = birthday.split('-').slice(1);
+  const currentYear = new Date().getFullYear();
+  const birthdayDate = `${currentYear}-${month}-${day} 00:00`;
+  
+  // Check if birthday event already exists for this year
+  const existing = db.prepare(`
+    SELECT id FROM events 
+    WHERE title = ? AND is_birthday = 1 
+    AND strftime('%m-%d', start_datetime) = ?
+    AND created_by = ?
+  `).get(`🎂 ${username}'s Birthday`, `${month}-${day}`, userId);
+  
+  if (!existing) {
+    db.prepare(`
+      INSERT INTO events (title, description, start_datetime, created_by, is_birthday)
+      VALUES (?, ?, ?, ?, 1)
+    `).run(`🎂 ${username}'s Birthday`, 'Happy Birthday!', birthdayDate, userId);
+  }
+}
+
+// all Helper to update birthday events for a user
+function updateBirthdayEvents(userId) {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+  if (!user || !user.birthday) return;
+  
+  // Remove old birthday events
+  db.prepare('DELETE FROM events WHERE created_by = ? AND is_birthday = 1').run(userId);
+  
+  // Create birthday event for next 5 years
+  const [month, day] = user.birthday.split('-').slice(1);
+  
+  for (let year = new Date().getFullYear(); year <= new Date().getFullYear() + 5; year++) {
+    const birthdayDate = `${year}-${month}-${day} 00:00`;
+    db.prepare(`
+      INSERT INTO events (title, description, start_datetime, created_by, is_birthday)
+      VALUES (?, ?, ?, ?, 1)
+    `).run(`🎂 ${user.username}'s Birthday`, '🎈 Happy Birthday!', birthdayDate, userId);
   }
 }
 
@@ -175,7 +219,7 @@ app.get('/calendar', requireAuth, (req, res) => {
     ORDER BY e.start_datetime
   `).all();
   
-  const users = db.prepare('SELECT id, username FROM users').all();
+  const users = db.prepare('SELECT id, username, birthday FROM users').all();
   res.render('calendar', { events, users });
 });
 
@@ -186,7 +230,7 @@ app.post('/add_event', requireAuth, (req, res) => {
   const endDatetime = end_date && end_time ? `${end_date} ${end_time}` : null;
   const taggedUsersStr = Array.isArray(tagged_users) ? tagged_users.join(',') : (tagged_users || '');
   
-  const result = db.prepare(`
+  db.prepare(`
     INSERT INTO events (title, description, start_datetime, end_datetime, created_by, tagged_users)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(title, description, startDatetime, endDatetime, req.session.userId, taggedUsersStr);
@@ -224,9 +268,15 @@ app.get('/delete_event/:id', requireAuth, (req, res) => {
   res.redirect('/calendar');
 });
 
+// Wishlist - show all users and their wishlists
 app.get('/wishlist', requireAuth, (req, res) => {
-  const items = db.prepare('SELECT * FROM wishlist_items WHERE user_id = ? ORDER BY created_at DESC').all(req.session.userId);
-  res.render('wishlist', { items });
+  const users = db.prepare('SELECT id, username, portrait FROM users').all();
+  const viewUserId = req.query.user || req.session.userId;
+  const viewUser = db.prepare('SELECT * FROM users WHERE id = ?').get(viewUserId);
+  const items = db.prepare('SELECT * FROM wishlist_items WHERE user_id = ? ORDER BY created_at DESC').all(viewUserId);
+  const isOwn = parseInt(viewUserId) === req.session.userId;
+  
+  res.render('wishlist', { users, currentUserId: req.session.userId, viewUser, items, isOwn });
 });
 
 app.post('/add_wishlist_item', requireAuth, async (req, res) => {
@@ -248,7 +298,11 @@ app.post('/add_wishlist_item', requireAuth, async (req, res) => {
 });
 
 app.get('/delete_wishlist_item/:id', requireAuth, (req, res) => {
-  db.prepare('DELETE FROM wishlist_items WHERE id = ? AND user_id = ?').run(req.params.id, req.session.userId);
+  // Only allow deleting own items
+  const item = db.prepare('SELECT * FROM wishlist_items WHERE id = ?').get(req.params.id);
+  if (item && item.user_id === req.session.userId) {
+    db.prepare('DELETE FROM wishlist_items WHERE id = ?').run(req.params.id);
+  }
   res.redirect('/wishlist');
 });
 
@@ -257,21 +311,31 @@ app.get('/profile', requireAuth, (req, res) => {
 });
 
 app.post('/profile', requireAuth, (req, res) => {
-  const { current_password, new_password } = req.body;
+  const { current_password, new_password, birthday } = req.body;
   
   const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.session.userId);
   
   if (bcrypt.compareSync(current_password, user.password)) {
-    const hashedPassword = bcrypt.hashSync(new_password, 10);
-    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, req.session.userId);
-    res.render('profile', { success: 'Password changed successfully!' });
+    // Update password if provided
+    if (new_password) {
+      const hashedPassword = bcrypt.hashSync(new_password, 10);
+      db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, req.session.userId);
+    }
+    
+    // Update birthday if provided
+    if (birthday) {
+      db.prepare('UPDATE users SET birthday = ? WHERE id = ?').run(birthday, req.session.userId);
+      // Create/update birthday events
+      updateBirthdayEvents(req.session.userId);
+    }
+    
+    res.render('profile', { success: 'Profile updated successfully!' });
   } else {
     res.render('profile', { error: 'Current password is incorrect' });
   }
 });
 
 app.post('/profile/portrait', requireAuth, (req, res) => {
-  // Simple base64 upload handling
   let portraitData = '';
   req.on('data', chunk => portraitData += chunk);
   req.on('end', () => {
@@ -285,12 +349,12 @@ app.post('/profile/portrait', requireAuth, (req, res) => {
         
         fs.writeFileSync(filepath, Buffer.from(base64Data, 'base64'));
         db.prepare('UPDATE users SET portrait = ? WHERE id = ?').run(`uploads/${filename}`, req.session.userId);
-        res.json({ success: true });
+        res.json({ success: true, path: `/uploads/${filename}` });
       } else {
-        res.json({ success: false });
+        res.json({ success: false, error: 'No image data' });
       }
     } catch (e) {
-      res.json({ success: false });
+      res.json({ success: false, error: e.message });
     }
   });
 });
@@ -310,6 +374,6 @@ app.get('/notifications', requireAuth, (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`lamp.rip running at http://localhost:${PORT}`);
+  console.log(`lamp.rip running at http://0.0.0.0:${PORT}`);
   console.log('Test account: admin / admin');
 });
