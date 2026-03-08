@@ -272,12 +272,17 @@ app.get('/delete_event/:id', requireAuth, (req, res) => {
 // Wishlist - show all users and their wishlists
 app.get('/wishlist', requireAuth, (req, res) => {
   const users = db.prepare('SELECT id, username, portrait FROM users').all();
-  const viewUserId = req.query.user || req.session.userId;
+  let viewUserId = req.query.user;
+  if (!viewUserId && users.length > 0) {
+    viewUserId = users[0].id;
+  }
+  if (!viewUserId) {
+    viewUserId = req.session.userId;
+  }
   const viewUser = db.prepare('SELECT * FROM users WHERE id = ?').get(viewUserId);
   const items = db.prepare('SELECT * FROM wishlist_items WHERE user_id = ? ORDER BY created_at DESC').all(viewUserId);
-  const isOwn = parseInt(viewUserId) === req.session.userId;
   
-  res.render('wishlist', { users, currentUserId: req.session.userId, viewUser, items, isOwn });
+  res.render('wishlist', { users, currentUserId: req.session.userId, viewUser, items });
 });
 
 app.post('/add_wishlist_item', requireAuth, async (req, res) => {

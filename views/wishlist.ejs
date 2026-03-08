@@ -23,12 +23,7 @@
     <!-- Wishlist Content -->
     <div class="wishlist-content">
       <div class="wishlist-header">
-        <h2>${isOwn ? 'My Wishlist' : viewUser.username + "'s Wishlist"}</h2>
-        ${isOwn ? `
-        <button class="btn btn-primary" onclick="openModal('addItemModal')">
-          <i class="fas fa-plus"></i> Add Item
-        </button>
-        ` : ''}
+        <h2>${viewUser.username}'s Wishlist</h2>
       </div>
       
       ${items.length > 0 ? `
@@ -43,53 +38,19 @@
             </a>
           </div>
           ` : ''}
-          ${isOwn ? `
-          <div class="wishlist-item-actions">
-            <a href="/delete_wishlist_item/${item.id}" class="btn btn-danger btn-sm" onclick="return confirm('Remove this item?')">
-              <i class="fas fa-trash"></i> Remove
-            </a>
-          </div>
-          ` : ''}
         </div>
         `).join('')}
       </div>
       ` : `
       <div class="empty-state">
         <i class="fas fa-gift"></i>
-        <h3>${isOwn ? 'Your wishlist is empty' : 'No items yet'}</h3>
-        <p>${isOwn ? 'Add things you want!' : 'This user hasn\'t added any items yet.'}</p>
+        <h3>No items yet</h3>
+        <p>This user hasn't added any items.</p>
       </div>
       `}
     </div>
   </div>
 </div>
-
-${isOwn ? `
-<div class="modal-overlay" id="addItemModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2 class="modal-title">Add Wishlist Item</h2>
-      <button class="modal-close" onclick="closeModal('addItemModal')">&times;</button>
-    </div>
-    <form method="POST" action="/add_wishlist_item">
-      <div class="form-group">
-        <label class="form-label" for="url">Product URL (optional)</label>
-        <input type="url" id="url" name="url" class="form-input" placeholder="https://..." onchange="previewUrl()">
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="custom_title">Title</label>
-        <input type="text" id="custom_title" name="custom_title" class="form-input" placeholder="Item name (leave blank to auto-fetch from URL)">
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('addItemModal')">Cancel</button>
-        <button type="submit" class="btn btn-primary">
-          <i class="fas fa-plus"></i> Add Item
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-` : ''}
 
 <style>
 .wishlist-layout {
