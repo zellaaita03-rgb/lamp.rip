@@ -1,0 +1,54 @@
+<%- include('layout', { content: `
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">My Wishlist</h1>
+  </div>
+  
+  <div class="add-wishlist-form">
+    <h3 class="card-title mb-2">Add New Item</h3>
+    <form method="POST" action="/add_wishlist_item">
+      <div class="grid grid-2">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="url">Product URL (optional)</label>
+          <input type="url" id="url" name="url" class="form-input" placeholder="https://...">
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+          <label class="form-label" for="custom_title">Title</label>
+          <input type="text" id="custom_title" name="custom_title" class="form-input" placeholder="Item name (or leave blank to auto-fetch)">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary mt-2">
+        <i class="fas fa-plus"></i> Add to Wishlist
+      </button>
+    </form>
+  </div>
+  
+  ${items.length > 0 ? `
+  <div class="wishlist-grid">
+    ${items.map(item => `
+    <div class="wishlist-item">
+      <h3 class="wishlist-item-title">${item.title}</h3>
+      ${item.url ? `
+      <div class="wishlist-item-url">
+        <a href="${item.url}" target="_blank" rel="noopener">
+          <i class="fas fa-external-link-alt"></i> View Product
+        </a>
+      </div>
+      ` : ''}
+      <div class="wishlist-item-actions">
+        <a href="/delete_wishlist_item/${item.id}" class="btn btn-danger btn-sm" onclick="return confirm('Remove this item from your wishlist?')">
+          <i class="fas fa-trash"></i> Remove
+        </a>
+      </div>
+    </div>
+    `).join('')}
+  </div>
+  ` : `
+  <div class="empty-state">
+    <i class="fas fa-gift"></i>
+    <h3>Your wishlist is empty</h3>
+    <p>Add items you'd love to get!</p>
+  </div>
+  `}
+</div>
+`, page: 'wishlist' }) %>

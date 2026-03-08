@@ -1,0 +1,196 @@
+<%- include('layout', { content: `
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">Shared Calendar</h1>
+    <button class="btn btn-primary" onclick="openModal('addEventModal')">
+      <i class="fas fa-plus"></i> Add Event
+    </button>
+  </div>
+  <div class="events-timeline">
+    ${events.length > 0 ? events.map(event => `
+    <div class="event-card card">
+      <div class="event-header">
+        <div>
+          <h3 class="event-title">${event.title}</h3>
+          <div class="event-datetime">
+            <i class="fas fa-clock"></i>
+            ${event.start_datetime.replace(' ', ' at ')}
+            ${event.end_datetime ? '- ' + event.end_datetime.replace(' ', ' at ') : ''}
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary btn-sm" onclick="openEditModal(${event.id}, '${event.title.replace(/'/g, "\\'")}', '${(event.description || '').replace(/'/g, "\\'")}', '${event.start_datetime}', '${event.end_datetime || ''}', '${event.tagged_users || ''}')">
+            <i class="fas fa-edit"></i>
+          </button>
+          <a href="/delete_event/${event.id}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this event?')">
+            <i class="fas fa-trash"></i>
+          </a>
+        </div>
+      </div>
+      ${event.description ? `<p class="event-description">${event.description}</p>` : ''}
+      ${event.tagged_users ? `
+      <div class="event-tags">
+        ${event.tagged_users.split(',').map(userId => {
+          const user = users.find(u => u.id == userId);
+          return user ? `<span class="tag"><i class="fas fa-user-tag"></i> ${user.username}</span>` : '';
+        }).join('')}
+      </div>
+      ` : ''}
+      <div class="event-creator">
+        <i class="fas fa-user"></i> Created by ${event.creator_name}
+      </div>
+    </div>
+    `).join('') : `
+    <div class="empty-state">
+      <i class="fas fa-calendar-plus"></i>
+      <h3>No events yet</h3>
+      <p>Be the first to add an event!</p>
+    </div>
+    `}
+  </div>
+</div>
+
+<div class="modal-overlay" id="addEventModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Add New Event</h2>
+      <button class="modal-close" onclick="closeModal('addEventModal')">&times;</button>
+    </div>
+    <form method="POST" action="/add_event">
+      <div class="form-group">
+        <label class="form-label" for="title">Event Title</label>
+        <input type="text" id="title" name="title" class="form-input" placeholder="What's the event?" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="description">Description (optional)</label>
+        <textarea id="description" name="description" class="form-textarea" placeholder="Tell people more about it..."></textarea>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group">
+          <label class="form-label" for="start_date">Start Date</label>
+          <input type="date" id="start_date" name="start_date" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="start_time">Start Time</label>
+          <input type="time" id="start_time" name="start_time" class="form-input" required>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group">
+          <label class="form-label" for="end_date">End Date (optional)</label>
+          <input type="date" id="end_date" name="end_date" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="end_time">End Time</label>
+          <input type="time" id="end_time" name="end_time" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tag Users (optional)</label>
+        <div class="checkbox-group">
+          ${users.map(user => `
+          <label class="checkbox-item">
+            <input type="checkbox" name="tagged_users" value="${user.id}">
+            <span>${user.username}</span>
+          </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('addEventModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Create Event
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editEventModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit Event</h2>
+      <button class="modal-close" onclick="closeModal('editEventModal')">&times;</button>
+    </div>
+    <form method="POST" id="editEventForm">
+      <div class="form-group">
+        <label class="form-label" for="edit_title">Event Title</label>
+        <input type="text" id="edit_title" name="title" class="form-input" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="edit_description">Description</label>
+        <textarea id="edit_description" name="description" class="form-textarea"></textarea>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group">
+          <label class="form-label" for="edit_start_date">Start Date</label>
+          <input type="date" id="edit_start_date" name="start_date" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit_start_time">Start Time</label>
+          <input type="time" id="edit_start_time" name="start_time" class="form-input" required>
+        </div>
+      </div>
+      <div class="grid grid-2">
+        <div class="form-group">
+          <label class="form-label" for="edit_end_date">End Date</label>
+          <input type="date" id="edit_end_date" name="end_date" class="form-input">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit_end_time">End Time</label>
+          <input type="time" id="edit_end_time" name="end_time" class="form-input">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tag Users</label>
+        <div class="checkbox-group" id="edit_tagged_users">
+          ${users.map(user => `
+          <label class="checkbox-item">
+            <input type="checkbox" name="tagged_users" value="${user.id}">
+            <span>${user.username}</span>
+          </label>
+          `).join('')}
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('editEventModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+`, page: 'calendar' }) %>
+
+<script>
+function openEditModal(eventId, title, description, startDatetime, endDatetime, taggedUsers) {
+  document.getElementById('edit_title').value = title;
+  document.getElementById('edit_description').value = description;
+  
+  if (startDatetime) {
+    const startParts = startDatetime.split(' ');
+    if (startParts.length >= 2) {
+      document.getElementById('edit_start_date').value = startParts[0];
+      document.getElementById('edit_start_time').value = startParts[1];
+    }
+  }
+  
+  if (endDatetime) {
+    const endParts = endDatetime.split(' ');
+    if (endParts.length >= 2) {
+      document.getElementById('edit_end_date').value = endParts[0];
+      document.getElementById('edit_end_time').value = endParts[1];
+    }
+  }
+  
+  const taggedArray = taggedUsers ? taggedUsers.split(',') : [];
+  const checkboxes = document.querySelectorAll('#edit_tagged_users input[type="checkbox"]');
+  checkboxes.forEach(cb => {
+    cb.checked = taggedArray.includes(cb.value);
+  });
+  
+  document.getElementById('editEventForm').action = '/edit_event/' + eventId;
+  openModal('editEventModal');
+}
+</script>

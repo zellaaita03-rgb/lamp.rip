@@ -1,0 +1,4 @@
+node_modules/
+lamp.db
+*.log
+.DS_Store

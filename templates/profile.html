@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - lamp.rip{% endblock %}
+
+{% block styles %}
+<style>
+    .profile-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+    
+    @media (max-width: 900px) {
+        .profile-content {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .upload-btn {
+        position: relative;
+        overflow: hidden;
+        display: inline-block;
+    }
+    
+    .upload-btn input[type=file] {
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="page-title mb-3">Settings</h1>
+    
+    <div class="profile-content">
+        <!-- Profile Section -->
+        <div class="card">
+            <div class="profile-section">
+                <h3 class="profile-section-title">
+                    <i class="fas fa-user"></i> Profile
+                </h3>
+                
+                <div class="profile-header">
+                    <div class="profile-avatar">
+                        {% if current_user.portrait %}
+                        <img src="{{ url_for('uploaded_file', filename=current_user.portrait) }}" alt="{{ current_user.username }}">
+                        {% else %}
+                        {{ current_user.username[0]|upper }}
+                        {% endif %}
+                    </div>
+                    <div class="profile-info">
+                        <h2>{{ current_user.username }}</h2>
+                        <p>Member</p>
+                    </div>
+                </div>
+                
+                <div class="mt-2">
+                    <label class="form-label">Change Portrait</label>
+                    <div class="upload-btn btn btn-secondary">
+                        <i class="fas fa-upload"></i> Upload Photo
+                        <input type="file" name="portrait" accept="image/*" onchange="this.form.submit()">
+                    </div>
+                    <p class="text-muted text-sm mt-1">JPG, PNG, GIF, WebP. Max 5MB.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Password Section -->
+        <div class="card">
+            <div class="profile-section">
+                <h3 class="profile-section-title">
+                    <i class="fas fa-lock"></i> Change Password
+                </h3>
+                
+                <form method="POST">
+                    <div class="form-group">
+                        <label class="form-label" for="current_password">Current Password</label>
+                        <input type="password" id="current_password" name="current_password" class="form-input" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" class="form-input" required minlength="6">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Update Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

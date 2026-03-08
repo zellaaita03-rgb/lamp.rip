@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}Calendar - lamp.rip{% endblock %}
+
+{% block styles %}
+<style>
+    .events-timeline {
+        position: relative;
+    }
+    
+    .events-timeline::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--border);
+    }
+    
+    .event-card {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .event-card::before {
+        content: '';
+        position: absolute;
+        left: -5px;
+        top: 1.5rem;
+        width: 12px;
+        height: 12px;
+        background: var(--accent);
+        border-radius: 50%;
+        box-shadow: 0 0 10px var(--glow);
+    }
+    
+    .modal-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+    
+    .modal-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">Shared Calendar</h1>
+        <button class="btn btn-primary" onclick="openModal('addEventModal')">
+            <i class="fas fa-plus"></i> Add Event
+        </button>
+    </div>
+    
+    <div class="events-timeline">
+        {% if events %}
+            {% for event in events %}
+            <div class="event-card card">
+                <div class="event-header">
+                    <div>
+                        <h3 class="event-title">{{ event.title }}</h3>
+                        <div class="event-datetime">
+                            <i class="fas fa-clock"></i>
+                            {{ event.start_datetime.replace(' ', ' at ') }}
+                            {% if event.end_datetime %}
+                                - {{ event.end_datetime.replace(' ', ' at ') }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary btn-sm" onclick="openEditModal({{ event.id }}, '{{ event.title }}', '{{ event.description or '' }}', '{{ event.start_datetime }}', '{{ event.end_datetime or '' }}', '{{ event.tagged_users or '' }}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <a href="{{ url_for('delete_event', event_id=event.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete this event?')">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                {% if event.description %}
+                <p class="event-description">{{ event.description }}</p>
+                {% endif %}
+                
+                {% if event.tagged_users %}
+                <div class="event-tags">
+                    {% for user_id in event.tagged_users.split(',') %}
+                        {% for u in users %}
+                            {% if u.id == user_id|int %}
+                            <span class="tag"><i class="fas fa-user-tag"></i> {{ u.username }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="event-creator">
+                    <i class="fas fa-user"></i> Created by {{ event.creator_name }}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-calendar-plus"></i>
+            <h3>No events yet</h3>
+            <p>Be the first to add an event!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Event Modal -->
+<div class="modal-overlay" id="addEventModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Add New Event</h2>
+            <button class="modal-close" onclick="closeModal('addEventModal')">&times;</button>
+        </div>
+        
+        <form method="POST" action="{{ url_for('add_event') }}">
+            <div class="form-group">
+                <label class="form-label" for="title">Event Title</label>
+                <input type="text" id="title" name="title" class="form-input" placeholder="What's the event?" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="description">Description (optional)</label>
+                <textarea id="description" name="description" class="form-textarea" placeholder="Tell people more about it..."></textarea>
+            </div>
+            
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label" for="start_date">Start Date</label>
+                    <input type="date" id="start_date" name="start_date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="start_time">Start Time</label>
+                    <input type="time" id="start_time" name="start_time" class="form-input" required>
+                </div>
+            </div>
+            
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label" for="end_date">End Date (optional)</label>
+                    <input type="date" id="end_date" name="end_date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="end_time">End Time</label>
+                    <input type="time" id="end_time" name="end_time" class="form-input">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Tag Users (optional)</label>
+                <div class="checkbox-group">
+                    {% for user in users %}
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="tagged_users" value="{{ user.id }}">
+                        <span>{{ user.username }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('addEventModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Create Event
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Event Modal -->
+<div class="modal-overlay" id="editEventModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Event</h2>
+            <button class="modal-close" onclick="closeModal('editEventModal')">&times;</button>
+        </div>
+        
+        <form method="POST" action="" id="editEventForm">
+            <div class="form-group">
+                <label class="form-label" for="edit_title">Event Title</label>
+                <input type="text" id="edit_title" name="title" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="edit_description">Description</label>
+                <textarea id="edit_description" name="description" class="form-textarea"></textarea>
+            </div>
+            
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label" for="edit_start_date">Start Date</label>
+                    <input type="date" id="edit_start_date" name="start_date" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit_start_time">Start Time</label>
+                    <input type="time" id="edit_start_time" name="start_time" class="form-input" required>
+                </div>
+            </div>
+            
+            <div class="grid grid-2">
+                <div class="form-group">
+                    <label class="form-label" for="edit_end_date">End Date</label>
+                    <input type="date" id="edit_end_date" name="end_date" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="edit_end_time">End Time</label>
+                    <input type="time" id="edit_end_time" name="end_time" class="form-input">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Tag Users</label>
+                <div class="checkbox-group" id="edit_tagged_users">
+                    {% for user in users %}
+                    <label class="checkbox-item">
+                        <input type="checkbox" name="tagged_users" value="{{ user.id }}">
+                        <span>{{ user.username }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editEventModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('active');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+    
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+    });
+    
+    function openEditModal(eventId, title, description, startDatetime, endDatetime, taggedUsers) {
+        document.getElementById('edit_title').value = title;
+        document.getElementById('edit_description').value = description;
+        
+        // Parse start datetime
+        if (startDatetime) {
+            const startParts = startDatetime.split(' ');
+            if (startParts.length >= 2) {
+                document.getElementById('edit_start_date').value = startParts[0];
+                document.getElementById('edit_start_time').value = startParts[1];
+            }
+        }
+        
+        // Parse end datetime
+        if (endDatetime) {
+            const endParts = endDatetime.split(' ');
+            if (endParts.length >= 2) {
+                document.getElementById('edit_end_date').value = endParts[0];
+                document.getElementById('edit_end_time').value = endParts[1];
+            }
+        }
+        
+        // Set tagged users
+        const taggedArray = taggedUsers ? taggedUsers.split(',') : [];
+        const checkboxes = document.querySelectorAll('#edit_tagged_users input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = taggedArray.includes(cb.value);
+        });
+        
+        // Set form action
+        document.getElementById('editEventForm').action = '/edit_event/' + eventId;
+        
+        openModal('editEventModal');
+    }
+    
+    // Set default date to today
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('start_date').value = today;
+        document.getElementById('edit_start_date').value = today;
+    });
+</script>
+{% endblock %}

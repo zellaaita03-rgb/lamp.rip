@@ -1,0 +1,17 @@
+{
+  "name": "lamp-rip",
+  "version": "1.0.0",
+  "description": "lamp.rip - Modern Shared Calendar & Wishlist App",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.3",
+    "cheerio": "^1.0.0-rc.12",
+    "ejs": "^5.0.1",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3"
+  }
+}
