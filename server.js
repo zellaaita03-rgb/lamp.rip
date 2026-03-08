@@ -145,7 +145,7 @@ function createBirthdayEvent(userId, username, birthday) {
   }
 }
 
-// all Helper to update birthday events for a user
+// Helper to update birthday events for a user
 function updateBirthdayEvents(userId) {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   if (!user || !user.birthday) return;
@@ -153,9 +153,10 @@ function updateBirthdayEvents(userId) {
   // Remove old birthday events
   db.prepare('DELETE FROM events WHERE created_by = ? AND is_birthday = 1').run(userId);
   
-  // Create birthday event for next 5 years
-  const [month, day] = user.birthday.split('-').slice(1);
+  // Birthday format is MM-DD
+  const [month, day] = user.birthday.split('-');
   
+  // Create birthday event for next 5 years
   for (let year = new Date().getFullYear(); year <= new Date().getFullYear() + 5; year++) {
     const birthdayDate = `${year}-${month}-${day} 00:00`;
     db.prepare(`
@@ -313,25 +314,29 @@ app.get('/profile', requireAuth, (req, res) => {
 app.post('/profile', requireAuth, (req, res) => {
   const { current_password, new_password, birthday } = req.body;
   
-  const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.session.userId);
+  // If updating password, require current password
+  if (new_password) {
+    const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.session.userId);
+    if (!current_password || !bcrypt.compareSync(current_password, user.password)) {
+      return res.render('profile', { error: 'Current password is incorrect' });
+    }
+    const hashedPassword = bcrypt.hashSync(new_password, 10);
+    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, req.session.userId);
+  }
   
-  if (bcrypt.compareSync(current_password, user.password)) {
-    // Update password if provided
-    if (new_password) {
-      const hashedPassword = bcrypt.hashSync(new_password, 10);
-      db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, req.session.userId);
-    }
-    
-    // Update birthday if provided
-    if (birthday) {
-      db.prepare('UPDATE users SET birthday = ? WHERE id = ?').run(birthday, req.session.userId);
-      // Create/update birthday events
-      updateBirthdayEvents(req.session.userId);
-    }
-    
-    res.render('profile', { success: 'Profile updated successfully!' });
+  // Update birthday if provided (format: MM-DD)
+  if (birthday) {
+    db.prepare('UPDATE users SET birthday = ? WHERE id = ?').run(birthday, req.session.userId);
+    // Create/update birthday events
+    updateBirthdayEvents(req.session.userId);
+  }
+  
+  if (new_password) {
+    res.render('profile', { success: 'Password changed successfully!' });
+  } else if (birthday) {
+    res.render('profile', { success: 'Birthday saved!' });
   } else {
-    res.render('profile', { error: 'Current password is incorrect' });
+    res.render('profile', { success: 'Profile updated!' });
   }
 });
 

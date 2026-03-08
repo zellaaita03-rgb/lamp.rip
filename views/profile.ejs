@@ -40,8 +40,24 @@
         </h3>
         <form method="POST" action="/profile">
           <div class="form-group">
-            <label class="form-label" for="birthday">Your Birthday</label>
-            <input type="date" id="birthday" name="birthday" class="form-input" value="${user.birthday || ''}">
+            <label class="form-label">Your Birthday (Month-Day)</label>
+            <div style="display: flex; gap: 0.5rem;">
+              <select name="birthday" class="form-select" style="flex: 1;">
+                <option value="">Select Month</option>
+                <option value="01-15" ${user.birthday === '01-15' ? 'selected' : ''}>January 15</option>
+                <option value="02-15" ${user.birthday === '02-15' ? 'selected' : ''}>February 15</option>
+                <option value="03-15" ${user.birthday === '03-15' ? 'selected' : ''}>March 15</option>
+                <option value="04-15" ${user.birthday === '04-15' ? 'selected' : ''}>April 15</option>
+                <option value="05-15" ${user.birthday === '05-15' ? 'selected' : ''}>May 15</option>
+                <option value="06-15" ${user.birthday === '06-15' ? 'selected' : ''}>June 15</option>
+                <option value="07-15" ${user.birthday === '07-15' ? 'selected' : ''}>July 15</option>
+                <option value="08-15" ${user.birthday === '08-15' ? 'selected' : ''}>August 15</option>
+                <option value="09-15" ${user.birthday === '09-15' ? 'selected' : ''}>September 15</option>
+                <option value="10-15" ${user.birthday === '10-15' ? 'selected' : ''}>October 15</option>
+                <option value="11-15" ${user.birthday === '11-15' ? 'selected' : ''}>November 15</option>
+                <option value="12-15" ${user.birthday === '12-15' ? 'selected' : ''}>December 15</option>
+              </select>
+            </div>
             <p class="text-muted text-sm mt-1">This will create recurring birthday events on the calendar!</p>
           </div>
           <button type="submit" class="btn btn-primary">
