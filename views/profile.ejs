@@ -38,25 +38,37 @@
         <h3 class="profile-section-title">
           <i class="fas fa-birthday-cake"></i> Birthday
         </h3>
-        <form method="POST" action="/profile">
+        <form method="POST" action="/profile" id="birthdayForm">
           <div class="form-group">
-            <label class="form-label">Your Birthday (Month-Day)</label>
+            <label class="form-label">Your Birthday</label>
             <div style="display: flex; gap: 0.5rem;">
-              <select name="birthday" class="form-select" style="flex: 1;">
-                <option value="">Select Month</option>
-                <option value="01-15" ${user.birthday === '01-15' ? 'selected' : ''}>January 15</option>
-                <option value="02-15" ${user.birthday === '02-15' ? 'selected' : ''}>February 15</option>
-                <option value="03-15" ${user.birthday === '03-15' ? 'selected' : ''}>March 15</option>
-                <option value="04-15" ${user.birthday === '04-15' ? 'selected' : ''}>April 15</option>
-                <option value="05-15" ${user.birthday === '05-15' ? 'selected' : ''}>May 15</option>
-                <option value="06-15" ${user.birthday === '06-15' ? 'selected' : ''}>June 15</option>
-                <option value="07-15" ${user.birthday === '07-15' ? 'selected' : ''}>July 15</option>
-                <option value="08-15" ${user.birthday === '08-15' ? 'selected' : ''}>August 15</option>
-                <option value="09-15" ${user.birthday === '09-15' ? 'selected' : ''}>September 15</option>
-                <option value="10-15" ${user.birthday === '10-15' ? 'selected' : ''}>October 15</option>
-                <option value="11-15" ${user.birthday === '11-15' ? 'selected' : ''}>November 15</option>
-                <option value="12-15" ${user.birthday === '12-15' ? 'selected' : ''}>December 15</option>
+              <select id="birthdayMonth" class="form-select" style="flex: 1;" onchange="updateBirthday()">
+                <option value="">Month</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
               </select>
+              <select id="birthdayDay" class="form-select" style="flex: 1;" onchange="updateBirthday()">
+                <option value="">Day</option>
+                <option value="01">1</option><option value="02">2</option><option value="03">3</option><option value="04">4</option>
+                <option value="05">5</option><option value="06">6</option><option value="07">7</option><option value="08">8</option>
+                <option value="09">9</option><option value="10">10</option><option value="11">11</option><option value="12">12</option>
+                <option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option>
+                <option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option>
+                <option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option>
+                <option value="25">25</option><option value="26">26</option><option value="27">27</option><option value="28">28</option>
+                <option value="29">29</option><option value="30">30</option><option value="31">31</option>
+              </select>
+              <input type="hidden" name="birthday" id="birthdayInput" value="${user.birthday || ''}">
             </div>
             <p class="text-muted text-sm mt-1">This will create recurring birthday events on the calendar!</p>
           </div>
@@ -66,6 +78,26 @@
         </form>
       </div>
     </div>
+    
+    <script>
+    function updateBirthday() {
+      const month = document.getElementById('birthdayMonth').value;
+      const day = document.getElementById('birthdayDay').value;
+      if (month && day) {
+        document.getElementById('birthdayInput').value = month + '-' + day;
+      }
+    }
+    (function() {
+      const current = '${user.birthday || ''}';
+      if (current) {
+        const parts = current.split('-');
+        if (parts.length === 2) {
+          document.getElementById('birthdayMonth').value = parts[0];
+          document.getElementById('birthdayDay').value = parts[1];
+        }
+      }
+    })();
+    </script>
     
     <div class="card">
       <div class="profile-section">

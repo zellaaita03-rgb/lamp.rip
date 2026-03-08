@@ -176,7 +176,8 @@
   </div>
 </nav>
 <style>
-.profile-dropdown { position: relative; }
+.profile-dropdown { position: relative; display: inline-block; }
+.profile-dropdown:hover .dropdown-menu { display: block; }
 .dropdown-menu {
   display: none;
   position: absolute;
@@ -191,7 +192,6 @@
   box-shadow: 0 10px 40px rgba(0,0,0,0.4);
   z-index: 200;
 }
-.profile-dropdown:hover .dropdown-menu { display: block; }
 .dropdown-menu a {
   display: flex;
   align-items: center;
