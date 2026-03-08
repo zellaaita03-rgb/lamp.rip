@@ -67,7 +67,7 @@
       </div>
     </div>
     
-    <div class="card" style="grid-column: 1 / -1;">
+    <div class="card">
       <div class="profile-section">
         <h3 class="profile-section-title">
           <i class="fas fa-lock"></i> Change Password
@@ -88,6 +88,42 @@
             <i class="fas fa-save"></i> Update Password
           </button>
         </form>
+      </div>
+    </div>
+    
+    <div class="card" id="wishlist">
+      <div class="profile-section">
+        <h3 class="profile-section-title">
+          <i class="fas fa-gift"></i> My Wishlist
+        </h3>
+        
+        <form method="POST" action="/add_wishlist_item" class="mb-3">
+          <div class="grid grid-2" style="gap: 0.75rem;">
+            <input type="url" name="url" class="form-input" placeholder="Product URL (optional)">
+            <input type="text" name="custom_title" class="form-input" placeholder="Item name">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm mt-2">
+            <i class="fas fa-plus"></i> Add Item
+          </button>
+        </form>
+        
+        ${typeof myWishlist !== 'undefined' && myWishlist.length > 0 ? `
+        <div class="wishlist-grid">
+          ${myWishlist.map(item => `
+          <div class="wishlist-item">
+            <h4 class="wishlist-item-title">${item.title}</h4>
+            ${item.url ? `<div class="wishlist-item-url"><a href="${item.url}" target="_blank"><i class="fas fa-external-link-alt"></i> View</a></div>` : ''}
+            <div class="wishlist-item-actions">
+              <a href="/delete_wishlist_item/${item.id}" class="btn btn-danger btn-sm" onclick="return confirm('Remove?')">
+                <i class="fas fa-trash"></i>
+              </a>
+            </div>
+          </div>
+          `).join('')}
+        </div>
+        ` : `
+        <p class="text-muted">No items yet. Add something you want!</p>
+        `}
       </div>
     </div>
   </div>

@@ -308,17 +308,19 @@ app.get('/delete_wishlist_item/:id', requireAuth, (req, res) => {
 });
 
 app.get('/profile', requireAuth, (req, res) => {
-  res.render('profile');
+  const myWishlist = db.prepare('SELECT * FROM wishlist_items WHERE user_id = ? ORDER BY created_at DESC').all(req.session.userId);
+  res.render('profile', { myWishlist });
 });
 
 app.post('/profile', requireAuth, (req, res) => {
   const { current_password, new_password, birthday } = req.body;
+  const myWishlist = db.prepare('SELECT * FROM wishlist_items WHERE user_id = ? ORDER BY created_at DESC').all(req.session.userId);
   
   // If updating password, require current password
   if (new_password) {
     const user = db.prepare('SELECT password FROM users WHERE id = ?').get(req.session.userId);
     if (!current_password || !bcrypt.compareSync(current_password, user.password)) {
-      return res.render('profile', { error: 'Current password is incorrect' });
+      return res.render('profile', { error: 'Current password is incorrect', myWishlist });
     }
     const hashedPassword = bcrypt.hashSync(new_password, 10);
     db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, req.session.userId);
@@ -332,11 +334,11 @@ app.post('/profile', requireAuth, (req, res) => {
   }
   
   if (new_password) {
-    res.render('profile', { success: 'Password changed successfully!' });
+    res.render('profile', { success: 'Password changed successfully!', myWishlist });
   } else if (birthday) {
-    res.render('profile', { success: 'Birthday saved!' });
+    res.render('profile', { success: 'Birthday saved!', myWishlist });
   } else {
-    res.render('profile', { success: 'Profile updated!' });
+    res.render('profile', { success: 'Profile updated!', myWishlist });
   }
 });
 
