@@ -58,12 +58,14 @@ db.exec(`
   );
 `);
 
-// Create default admin user
+// Create default users
 const adminExists = db.prepare('SELECT * FROM users WHERE username = ?').get('admin');
 if (!adminExists) {
-  const hashedPassword = bcrypt.hashSync('admin', 10);
-  db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashedPassword);
-  console.log('Created default admin user: admin/admin');
+  const hashedAdmin = bcrypt.hashSync('admin', 10);
+  const hashedPhishie = bcrypt.hashSync('phishie', 10);
+  db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('admin', hashedAdmin);
+  db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('phishie', hashedPhishie);
+  console.log('Created test users: admin/admin and phishie/phishie');
 }
 
 // Middleware
