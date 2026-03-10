@@ -7,7 +7,9 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
+const http = require('http');
 const PORT = 4175;
+const FRONTEND_PORT = 5175;
 
 // Database setup
 const db = new Database('lamp.db');
@@ -387,7 +389,14 @@ app.get('/notifications', requireAuth, (req, res) => {
   res.render('notifications', { notifications });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`lamp.rip running at http://0.0.0.0:${PORT}`);
+const server1 = http.createServer(app);
+const server2 = http.createServer(app);
+
+server1.listen(PORT, '0.0.0.0', () => {
+  console.log(`lamp.rip backend running at http://0.0.0.0:${PORT}`);
+});
+
+server2.listen(FRONTEND_PORT, '0.0.0.0', () => {
+  console.log(`lamp.rip frontend running at http://0.0.0.0:${FRONTEND_PORT}`);
   console.log('Test account: admin / admin');
 });
